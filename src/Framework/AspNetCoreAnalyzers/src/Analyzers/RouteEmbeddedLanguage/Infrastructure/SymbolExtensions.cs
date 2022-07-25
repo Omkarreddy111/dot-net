@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 
 namespace Microsoft.AspNetCore.Analyzers.RouteEmbeddedLanguage.Infrastructure;
@@ -57,4 +58,7 @@ internal static class SymbolExtensions
             IPropertySymbol parameterSymbol => parameterSymbol.Parameters,
             _ => ImmutableArray<IParameterSymbol>.Empty,
         };
+
+    public static ISymbol? GetAnySymbol(this SymbolInfo info)
+        => info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
 }

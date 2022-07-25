@@ -188,5 +188,43 @@ internal sealed class WellKnownTypes
     public INamedTypeSymbol IFormFileCollection { get; private init; }
     public INamedTypeSymbol Stream { get; private init; }
     public INamedTypeSymbol PipeReader { get; private init; }
-    public INamedTypeSymbol IFormFile { get; private set; }
+    public INamedTypeSymbol IFormFile { get; private init; }
+
+    private INamedTypeSymbol[]? _parameterSpecialTypes;
+    public INamedTypeSymbol[] ParameterSpecialTypes
+    {
+        get
+        {
+            _parameterSpecialTypes ??= new[]
+            {
+                CancellationToken,
+                HttpContext,
+                HttpRequest,
+                HttpResponse,
+                ClaimsPrincipal,
+                IFormFileCollection,
+                IFormFile,
+                Stream,
+                PipeReader
+            };
+            return _parameterSpecialTypes;
+        }
+    }
+
+    private INamedTypeSymbol[]? _nonRouteMetadataTypes;
+    public INamedTypeSymbol[] NonRouteMetadataTypes
+    {
+        get
+        {
+            _nonRouteMetadataTypes ??= new[]
+            {
+                IFromBodyMetadata,
+                IFromFormMetadata,
+                IFromHeaderMetadata,
+                IFromQueryMetadata,
+                IFromServiceMetadata
+            };
+            return _nonRouteMetadataTypes;
+        }
+    }
 }

@@ -36,13 +36,20 @@ internal class TestDiagnosticAnalyzerRunner : DiagnosticAnalyzerRunner
         return result.ToArray();
     }
 
-    public async Task<CompletionResult> GetCompletionsAndServiceAsync(int caretPosition, params string[] sources)
+    public Task<CompletionResult> GetCompletionsAndServiceAsync(int caretPosition, params string[] sources)
+    {
+        var source = sources.First();
+        var insertionChar = source[caretPosition - 1];
+        return GetCompletionsAndServiceAsync(caretPosition, CompletionTrigger.CreateInsertionTrigger(insertionChar), sources);
+    }
+
+    public async Task<CompletionResult> GetCompletionsAndServiceAsync(int caretPosition, CompletionTrigger completionTrigger, params string[] sources)
     {
         var project = CreateProjectWithReferencesInBinDir(GetType().Assembly, sources);
         var doc = project.Solution.GetDocument(project.Documents.First().Id);
 
         var completionService = CompletionService.GetService(doc);
-        var result = await completionService.GetCompletionsAsync(doc, caretPosition, CompletionTrigger.Invoke);
+        var result = await completionService.GetCompletionsAsync(doc, caretPosition, completionTrigger);
 
         return new(doc, completionService, result);
     }

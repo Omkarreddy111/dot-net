@@ -19,30 +19,9 @@ internal static class RoutePatternParametersDetector
             _ => throw new InvalidOperationException("Unexpected symbol type: " + symbol)
         };
 
-        var allNoneRouteMetadataTypes = new[]
-        {
-            wellKnownTypes.IFromBodyMetadata,
-            wellKnownTypes.IFromFormMetadata,
-            wellKnownTypes.IFromHeaderMetadata,
-            wellKnownTypes.IFromQueryMetadata,
-            wellKnownTypes.IFromServiceMetadata
-        };
-        var specialTypes = new[]
-        {
-            wellKnownTypes.CancellationToken,
-            wellKnownTypes.HttpContext,
-            wellKnownTypes.HttpRequest,
-            wellKnownTypes.HttpResponse,
-            wellKnownTypes.ClaimsPrincipal,
-            wellKnownTypes.IFormFileCollection,
-            wellKnownTypes.IFormFile,
-            wellKnownTypes.Stream,
-            wellKnownTypes.PipeReader
-        };
-
         foreach (var child in childSymbols)
         {
-            if (HasSpecialType(child, specialTypes) || HasExplicitNonRouteAttribute(child, allNoneRouteMetadataTypes))
+            if (HasSpecialType(child, wellKnownTypes.ParameterSpecialTypes) || HasExplicitNonRouteAttribute(child, wellKnownTypes.NonRouteMetadataTypes))
             {
                 continue;
             }

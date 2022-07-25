@@ -47,7 +47,7 @@ internal static class SyntaxTokenExtensions
     [return: NotNullIfNotNull("node")]
     private static SyntaxNode? WalkUpParentheses(SyntaxNode? node)
     {
-        while (IsParenthesizedExpression(node?.Parent))
+        while (node?.Parent?.RawKind == (int)SyntaxKind.ParenthesizedExpression)
         {
             node = node.Parent;
         }
@@ -69,9 +69,6 @@ internal static class SyntaxTokenExtensions
         creationExpression = null;
         return false;
     }
-
-    private static bool IsParenthesizedExpression([NotNullWhen(true)] SyntaxNode? node)
-        => node?.RawKind == (int)SyntaxKind.ParenthesizedExpression;
 
     public static bool IsSimpleAssignmentStatement([NotNullWhen(true)] this SyntaxNode? statement)
         => statement is ExpressionStatementSyntax exprStatement &&

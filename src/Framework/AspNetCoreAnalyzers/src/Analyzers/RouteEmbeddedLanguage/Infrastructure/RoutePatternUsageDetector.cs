@@ -11,10 +11,15 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.AspNetCore.Analyzers.RouteEmbeddedLanguage.Infrastructure;
 
-internal record struct RoutePatternUsageContext(
+internal readonly record struct RoutePatternUsageContext(
     IMethodSymbol? MethodSymbol,
     bool IsMinimal,
     bool IsMvcAttribute);
+
+internal readonly record struct MapMethodParts(
+    IMethodSymbol Method,
+    LiteralExpressionSyntax RouteStringExpression,
+    ExpressionSyntax DelegateExpression);
 
 internal static class RoutePatternUsageDetector
 {
@@ -34,11 +39,15 @@ internal static class RoutePatternUsageDetector
         if (container.Parent.IsKind(SyntaxKind.Argument))
         {
             // We're an argument in a method call. See if we're a MapXXX method.
-            var mapMethodSymbol = FindMapMethod(semanticModel, wellKnownTypes, container, cancellationToken);
-            if (mapMethodSymbol == null)
+            var mapMethodParts = FindMapMethodParts(semanticModel, wellKnownTypes, container, cancellationToken);
+            if (mapMethodParts == null)
             {
                 return default;
-            }    
+            }
+
+            // Get the map method delegate.
+            var mapMethodSymbol = GetMethodInfo(semanticModel, mapMethodParts.Value.DelegateExpression, cancellationToken);
+
             return new(MethodSymbol: mapMethodSymbol, IsMinimal: true, IsMvcAttribute: false);
         }
         else if (container.Parent.IsKind(SyntaxKind.AttributeArgument))
@@ -108,7 +117,7 @@ internal static class RoutePatternUsageDetector
         return methodSymbol;
     }
 
-    private static IMethodSymbol? FindMapMethod(SemanticModel semanticModel, WellKnownTypes wellKnownTypes, SyntaxNode container, CancellationToken cancellationToken)
+    public static MapMethodParts? FindMapMethodParts(SemanticModel semanticModel, WellKnownTypes wellKnownTypes, SyntaxNode container, CancellationToken cancellationToken)
     {
         var argument = container.Parent;
         if (argument.Parent is not BaseArgumentListSyntax argumentList ||
@@ -125,10 +134,10 @@ internal static class RoutePatternUsageDetector
         {
             if (symbol is IMethodSymbol methodSymbol)
             {
-                var matchingMapSymbol = FindValidMapMethod(semanticModel, wellKnownTypes, argumentList, methodSymbol, cancellationToken);
-                if (matchingMapSymbol != null)
+                var mapMethodParts = FindValidMapMethodParts(semanticModel, wellKnownTypes, argumentList, methodSymbol);
+                if (mapMethodParts != null)
                 {
-                    return matchingMapSymbol;
+                    return mapMethodParts;
                 }
             }
         }
@@ -136,17 +145,9 @@ internal static class RoutePatternUsageDetector
         return null;
     }
 
-    private static IMethodSymbol? FindValidMapMethod(SemanticModel semanticModel, WellKnownTypes wellKnownTypes, BaseArgumentListSyntax argumentList, IMethodSymbol method, CancellationToken cancellationToken)
+    private static MapMethodParts? FindValidMapMethodParts(SemanticModel semanticModel, WellKnownTypes wellKnownTypes, BaseArgumentListSyntax argumentList, IMethodSymbol method)
     {
         if (!method.Name.StartsWith("Map", StringComparison.Ordinal))
-        {
-            return null;
-        }
-
-        var delegateSymbol = semanticModel.Compilation.GetSpecialType(SpecialType.System_Delegate);
-
-        var delegateArgument = method.Parameters.FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(delegateSymbol, a.Type));
-        if (delegateArgument == null)
         {
             return null;
         }
@@ -160,37 +161,63 @@ internal static class RoutePatternUsageDetector
             return null;
         }
 
-        var delegateIndex = method.Parameters.IndexOf(delegateArgument);
-        if (delegateIndex >= argumentList.Arguments.Count)
+        var delegateSymbol = semanticModel.Compilation.GetSpecialType(SpecialType.System_Delegate);
+        var delegateParameter = method.Parameters.FirstOrDefault(p => SymbolEqualityComparer.Default.Equals(delegateSymbol, p.Type));
+        if (delegateParameter == null)
         {
             return null;
         }
 
-        ArgumentSyntax? item = null;
+        var delegateArgument = GetArgumentSyntax(argumentList, method, delegateParameter);
+        if (delegateArgument == null)
+        {
+            return null;
+        }
+
+        var stringSymbol = semanticModel.Compilation.GetSpecialType(SpecialType.System_String);
+        var routeStringParameter = method.Parameters.FirstOrDefault(p => SymbolEqualityComparer.Default.Equals(stringSymbol, p.Type) &&
+            RouteStringSyntaxDetector.HasMatchingStringSyntaxAttribute(p, out var identifer) &&
+            identifer == "Route");
+        if (routeStringParameter == null)
+        {
+            return null;
+        }
+
+        var routeStringArgument = GetArgumentSyntax(argumentList, method, routeStringParameter);
+        if (routeStringArgument?.Expression is not LiteralExpressionSyntax literalExpression)
+        {
+            return null;
+        }
+
+        return new MapMethodParts(method, literalExpression, delegateArgument.Expression);
+    }
+
+    private static ArgumentSyntax? GetArgumentSyntax(BaseArgumentListSyntax argumentList, IMethodSymbol methodSymbol, IParameterSymbol? parameterSymbol)
+    {
         foreach (var argument in argumentList.Arguments)
         {
             // Handle named argument
             if (argument.NameColon != null && !argument.NameColon.IsMissing)
             {
                 var name = argument.NameColon.Name.Identifier.ValueText;
-                if (name == delegateArgument.Name)
+                if (name == parameterSymbol.Name)
                 {
-                    item = argument;
-                    break;
+                    return argument;
                 }
             }
         }
 
-        if (item == null)
+        // Handle positional argument
+        var index = methodSymbol.Parameters.IndexOf(parameterSymbol);
+        if (index >= argumentList.Arguments.Count)
         {
-            // Handle positional argument
-            item = argumentList.Arguments[delegateIndex];
+            return null;
         }
 
-        return GetMethodInfo(semanticModel, item.Expression, cancellationToken);
+        return argumentList.Arguments[index];
     }
 
-    private static IMethodSymbol? GetMethodInfo(SemanticModel semanticModel, SyntaxNode syntaxNode, CancellationToken cancellationToken)
+    public static IMethodSymbol? GetMethodInfo(SemanticModel semanticModel, SyntaxNode syntaxNode, CancellationToken cancellationToken)
     {
         var delegateSymbolInfo = semanticModel.GetSymbolInfo(syntaxNode, cancellationToken);
         var delegateSymbol = delegateSymbolInfo.Symbol;

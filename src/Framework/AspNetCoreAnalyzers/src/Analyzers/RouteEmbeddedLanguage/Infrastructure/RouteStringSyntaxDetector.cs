@@ -165,7 +165,7 @@ internal static class RouteStringSyntaxDetector
         return HasMatchingStringSyntaxAttribute(parameter, out identifier);
     }
 
-    private static bool IsArgumentToAttributeParameterWithMatchingStringSyntaxAttribute(
+    public static bool IsArgumentToAttributeParameterWithMatchingStringSyntaxAttribute(
         SemanticModel semanticModel,
         SyntaxNode argument,
         CancellationToken cancellationToken,
@@ -191,7 +191,7 @@ internal static class RouteStringSyntaxDetector
             HasMatchingStringSyntaxAttribute(symbol, out identifier);
     }
 
-    private static bool HasMatchingStringSyntaxAttribute(
+    public static bool HasMatchingStringSyntaxAttribute(
         [NotNullWhen(true)] ISymbol? symbol,
         [NotNullWhen(true)] out string? identifier)
     {
@@ -253,7 +253,7 @@ internal static class RouteStringSyntaxDetector
 
     private static ISymbol FindFieldOrPropertyForAttributeArgument(SemanticModel semanticModel, SyntaxNode argument, CancellationToken cancellationToken)
         => argument is AttributeArgumentSyntax { NameEquals.Name: var name }
-            ? GetAnySymbol(semanticModel.GetSymbolInfo(name, cancellationToken))
+            ? semanticModel.GetSymbolInfo(name, cancellationToken).GetAnySymbol()
             : null;
 
     private static IParameterSymbol FindParameterForArgument(SemanticModel semanticModel, SyntaxNode argument, bool allowUncertainCandidates, CancellationToken cancellationToken)
@@ -261,9 +261,6 @@ internal static class RouteStringSyntaxDetector
 
     private static IParameterSymbol FindParameterForAttributeArgument(SemanticModel semanticModel, SyntaxNode argument, bool allowUncertainCandidates, CancellationToken cancellationToken)
         => ((AttributeArgumentSyntax)argument).DetermineParameter(semanticModel, allowUncertainCandidates, allowParams: false, cancellationToken);
-
-    public static ISymbol? GetAnySymbol(SymbolInfo info)
-        => info.Symbol ?? info.CandidateSymbols.FirstOrDefault();
 
     /// <summary>
     /// Returns the parameter to which this argument is passed. If <paramref name="allowParams"/>
