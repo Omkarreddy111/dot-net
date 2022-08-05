@@ -10,7 +10,6 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editing;
 
 namespace Microsoft.AspNetCore.Analyzers.RouteHandlers.Fixers;
 
@@ -37,7 +36,6 @@ public class DetectMismatchedParameterOptionalityFixer : CodeFixProvider
 
     private static async Task<Document> FixMismatchedParameterOptionalityAsync(Diagnostic diagnostic, Document document, CancellationToken cancellationToken)
     {
-        var editor = await DocumentEditor.CreateAsync(document, cancellationToken);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
         if (root == null)

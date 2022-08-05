@@ -17,9 +17,9 @@
     <!-- Load analyzers into test project. Allows for testing inside Visual Studio. -->
     <!-- Note that VS must be restarted after making changes to analyzer project. Required for VS to pick up the changes. -->
     <!--
+    -->
     <ProjectReference Include="..\src\Analyzers\Microsoft.AspNetCore.App.Analyzers.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" />
-    -->
 
     <ProjectReference Include="$(RepoRoot)src\Analyzers\Microsoft.AspNetCore.Analyzer.Testing\src\Microsoft.AspNetCore.Analyzer.Testing.csproj" />
 
