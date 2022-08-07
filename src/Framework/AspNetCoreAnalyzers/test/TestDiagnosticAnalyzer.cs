@@ -47,11 +47,22 @@ internal class TestDiagnosticAnalyzerRunner : DiagnosticAnalyzerRunner
     {
         var project = CreateProjectWithReferencesInBinDir(GetType().Assembly, sources);
         var doc = project.Solution.GetDocument(project.Documents.First().Id);
+        var originalText = await doc.GetTextAsync().ConfigureAwait(false);
 
         var completionService = CompletionService.GetService(doc);
-        var result = await completionService.GetCompletionsAsync(doc, caretPosition, completionTrigger);
+        var shouldTriggerCompletion = completionService.ShouldTriggerCompletion(originalText, caretPosition, completionTrigger);
 
-        return new(doc, completionService, result);
+        if (shouldTriggerCompletion)
+        {
+            var result = await completionService.GetCompletionsAsync(doc, caretPosition, completionTrigger);
+            var completionSpan = completionService.GetDefaultCompletionListSpan(originalText, caretPosition);
+
+            return new(doc, completionService, result, completionSpan, shouldTriggerCompletion);
+        }
+        else
+        {
+            return new(doc, completionService, default, default, shouldTriggerCompletion);
+        }
     }
 
     public async Task<AspNetCoreBraceMatchingResult?> GetBraceMatchesAsync(int caretPosition, params string[] sources)
@@ -147,4 +158,4 @@ internal class TestDiagnosticAnalyzerRunner : DiagnosticAnalyzerRunner
     }
 }
 
-public record CompletionResult(Document Document, CompletionService Service, CompletionList Completions);
+public record CompletionResult(Document Document, CompletionService Service, CompletionList Completions, TextSpan CompletionListSpan, bool ShouldTriggerCompletion);

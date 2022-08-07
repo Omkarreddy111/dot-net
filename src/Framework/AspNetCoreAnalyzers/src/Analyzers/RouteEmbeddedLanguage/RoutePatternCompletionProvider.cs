@@ -43,8 +43,7 @@ public class RoutePatternCompletionProvider : CompletionProvider
 
     public override bool ShouldTriggerCompletion(SourceText text, int caretPosition, CompletionTrigger trigger, OptionSet options)
     {
-        if (trigger.Kind is CompletionTriggerKind.Invoke or
-            CompletionTriggerKind.InvokeAndCommitIfUnique)
+        if (trigger.Kind is CompletionTriggerKind.Invoke or CompletionTriggerKind.InvokeAndCommitIfUnique)
         {
             return true;
         }
@@ -153,17 +152,37 @@ public class RoutePatternCompletionProvider : CompletionProvider
                 tags: ImmutableArray.Create(embeddedItem.Glyph)));
         }
 
+        if (routePatternCompletionContext.CompletionListSpan.Value != null)
+        {
+            context.CompletionListSpan = routePatternCompletionContext.CompletionListSpan.Value.Value;
+        }
         context.IsExclusive = true;
     }
 
     private void ProvideCompletions(EmbeddedCompletionContext context)
     {
+        var result = GetCurrentToken(context);
+        if (result == null)
+        {
+            return;
+        }
+
+        var (node, token) = result.Value;
+
         // First, act as if the user just inserted the previous character.  This will cause us
         // to complete down to the set of relevant items based on that character. If we get
         // anything, we're done and can just show the user those items.  If we have no items to
         // add *and* the user was explicitly invoking completion, then just add the entire set
         // of suggestions to help the user out.
-        ProvideCompletionsBasedOffOfPrecedingCharacter(context);
+        switch (token.Kind)
+        {
+            case RoutePatternKind.ColonToken:
+                ProvidePolicyNameCompletions(context, parentOpt: null);
+                break;
+            case RoutePatternKind.OpenBraceToken:
+                ProvideParameterCompletions(context, parentOpt: null);
+                break;
+        }
 
         if (context.Items.Count > 0)
         {
@@ -180,81 +199,71 @@ public class RoutePatternCompletionProvider : CompletionProvider
 
         // We added no items, but the user explicitly asked for completion.  Add all the
         // items we can to help them out.
-        _ = context.Tree.Text.Find(context.Position);
-
-        // TODO: CompletionProvider's loaded from projects currently don't support overriding
-        // description or customizing how text is added. This is needed to properly support
-        // completions when the user explicitly asked for completion.
-        // Will be fixed in VS 17.4 - https://github.com/dotnet/roslyn/pull/61976
+        switch (token.Kind)
+        {
+            case RoutePatternKind.PolicyFragmentToken:
+                context.CompletionListSpan.Value = token.GetSpan();
+                ProvidePolicyNameCompletions(context, node);
+                break;
+            case RoutePatternKind.ParameterNameToken:
+                context.CompletionListSpan.Value = token.GetSpan();
+                ProvideParameterCompletions(context, node);
+                break;
+        }
     }
 
-    private void ProvideCompletionsBasedOffOfPrecedingCharacter(EmbeddedCompletionContext context)
+    private (RoutePatternNode Parent, RoutePatternToken Token)? GetCurrentToken(EmbeddedCompletionContext context)
     {
         var previousVirtualCharOpt = context.Tree.Text.Find(context.Position - 1);
         if (previousVirtualCharOpt == null)
         {
             // We didn't have a previous character.  Can't determine the set of 
             // regex items to show.
-            return;
+            return null;
         }
 
         var previousVirtualChar = previousVirtualCharOpt.Value;
-        var result = FindToken(context.Tree.Root, previousVirtualChar);
-        if (result == null)
-        {
-            return;
-        }
-
-        var (_, token) = result.Value;
-        switch (token.Kind)
-        {
-            case RoutePatternKind.ColonToken:
-                ProvidePolicyNameCompletions(context);
-                return;
-            case RoutePatternKind.OpenBraceToken:
-                ProvideParameterCompletions(context);
-                return;
-        }
+        return FindToken(context.Tree.Root, previousVirtualChar);
     }
 
-    private static void ProvideParameterCompletions(EmbeddedCompletionContext context)
+    private static void ProvideParameterCompletions(EmbeddedCompletionContext context, RoutePatternNode? parentOpt)
     {
         if (context.MethodSymbol != null)
         {
             var resolvedParameterSymbols = RoutePatternParametersDetector.ResolvedParameters(context.MethodSymbol, context.WellKnownTypes);
             foreach (var parameterSymbol in resolvedParameterSymbols)
             {
-                context.AddIfMissing(parameterSymbol.Name, suffix: null, description: null, WellKnownTags.Parameter, parentOpt: null);
+                context.AddIfMissing(parameterSymbol.Name, suffix: null, description: null, WellKnownTags.Parameter, parentOpt: parentOpt);
             }
         }
     }
 
-    private static void ProvidePolicyNameCompletions(EmbeddedCompletionContext context)
+    private static void ProvidePolicyNameCompletions(EmbeddedCompletionContext context, RoutePatternNode? parentOpt)
     {
-        context.AddIfMissing("int", suffix: null, "Matches any 32-bit integer.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("bool", suffix: null, "Matches true or false. Case-insensitive.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("datetime", suffix: null, "Matches a valid DateTime value in the invariant culture.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("decimal", suffix: null, "Matches a valid decimal value in the invariant culture.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("double", suffix: null, "Matches a valid double value in the invariant culture.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("float", suffix: null, "Matches a valid float value in the invariant culture.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("guid", suffix: null, "Matches a valid Guid value.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("long", suffix: null, "Matches any 64-bit integer.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("minlength", suffix: null, "Matches a string with a length greater than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("maxlength", suffix: null, "Matches a string with a length less than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt: null);
+        context.AddIfMissing("int", suffix: null, "Matches any 32-bit integer.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("bool", suffix: null, "Matches true or false. Case-insensitive.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("datetime", suffix: null, "Matches a valid DateTime value in the invariant culture.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("decimal", suffix: null, "Matches a valid decimal value in the invariant culture.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("double", suffix: null, "Matches a valid double value in the invariant culture.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("float", suffix: null, "Matches a valid float value in the invariant culture.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("guid", suffix: null, "Matches a valid Guid value.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("long", suffix: null, "Matches any 64-bit integer.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("minlength", suffix: null, "Matches a string with a length greater than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("maxlength", suffix: null, "Matches a string with a length less than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt);
         context.AddIfMissing("length", suffix: null, @"The string length constraint supports one or two constraint arguments.
 
 If there is one argument the string length must equal the argument. For example, length(10) matches a string with exactly 10 characters.
 
-If there are two arguments then the string length must be greater than, or equal to, the first argument and less than, or equal to, the second argument. For example, length(8,16) matches a string at least 8 and no more than 16 characters long.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("min", suffix: null, "Matches an integer with a value greater than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("max", suffix: null, "Matches an integer with a value less than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("range", suffix: null, "Matches an integer with a value greater than, or equal to, the first constraint argument and less than, or equal to, the second constraint argument.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("alpha", suffix: null, "Matches a string that contains only lowercase or uppercase letters A through Z in the English alphabet.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("regex", suffix: null, "Matches a string to the regular expression constraint argument.", WellKnownTags.Keyword, parentOpt: null);
-        context.AddIfMissing("required", suffix: null, "Used to enforce that a non-parameter value is present during URL generation.", WellKnownTags.Keyword, parentOpt: null);
+If there are two arguments then the string length must be greater than, or equal to, the first argument and less than, or equal to, the second argument. For example, length(8,16) matches a string at least 8 and no more than 16 characters long.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("min", suffix: null, "Matches an integer with a value greater than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("max", suffix: null, "Matches an integer with a value less than, or equal to, the constraint argument.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("range", suffix: null, "Matches an integer with a value greater than, or equal to, the first constraint argument and less than, or equal to, the second constraint argument.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("alpha", suffix: null, "Matches a string that contains only lowercase or uppercase letters A through Z in the English alphabet.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("regex", suffix: null, "Matches a string to the regular expression constraint argument.", WellKnownTags.Keyword, parentOpt);
+        context.AddIfMissing("required", suffix: null, "Used to enforce that a non-parameter value is present during URL generation.", WellKnownTags.Keyword, parentOpt);
     }
 
-    private (RoutePatternNode parent, RoutePatternToken Token)? FindToken(RoutePatternNode parent, VirtualChar ch)
+    private (RoutePatternNode Parent, RoutePatternToken Token)? FindToken(RoutePatternNode parent, VirtualChar ch)
     {
         foreach (var child in parent)
         {
@@ -312,6 +321,12 @@ If there are two arguments then the string length must be greater than, or equal
         public readonly int Position;
         public readonly CompletionTrigger Trigger;
         public readonly List<RoutePatternItem> Items = new();
+        public readonly CompletionListSpanContainer CompletionListSpan = new();
+
+        internal class CompletionListSpanContainer
+        {
+            public TextSpan? Value { get; set; }
+        }
 
         public EmbeddedCompletionContext(
             CompletionContext context,
@@ -341,8 +356,11 @@ If there are two arguments then the string length must be greater than, or equal
             var replacementStart = parentOpt != null
                 ? parentOpt.GetSpan().Start
                 : Position;
+            var replacementEnd = parentOpt != null
+                ? parentOpt.GetSpan().End
+                : Position;
 
-            var replacementSpan = TextSpan.FromBounds(replacementStart, Position);
+            var replacementSpan = TextSpan.FromBounds(replacementStart, replacementEnd);
             var newPosition = replacementStart + positionOffset;
 
             insertionText ??= displayText;
