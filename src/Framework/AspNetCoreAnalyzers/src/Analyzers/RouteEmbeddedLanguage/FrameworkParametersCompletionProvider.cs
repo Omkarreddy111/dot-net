@@ -451,7 +451,7 @@ public class FrameworkParametersCompletionProvider : CompletionProvider
     {
         foreach (var parameterSymbol in context.Tree.RouteParameters)
         {
-            context.AddIfMissing(parameterSymbol.Key, suffix: null, description: null, WellKnownTags.Parameter, parentOpt);
+            context.AddIfMissing(parameterSymbol.Key, suffix: null, description: "(Route parameter)", WellKnownTags.Parameter, parentOpt);
         }
     }
 
