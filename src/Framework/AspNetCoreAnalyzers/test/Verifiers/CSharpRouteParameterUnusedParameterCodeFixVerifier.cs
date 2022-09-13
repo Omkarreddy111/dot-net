@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Immutable;
-using Microsoft.AspNetCore.Analyzers.RouteEmbeddedLanguage.Fixers;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Testing.Verifiers;
@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.Analyzers.RouteEmbeddedLanguage;
 
 public static class CSharpRouteParameterUnusedParameterCodeFixVerifier<TAnalyzer, TCodeFix>
     where TAnalyzer : RoutePatternAnalyzer, new()
-    where TCodeFix : RouteParameterUnusedParameterFixer, new()
+    where TCodeFix : CodeFixProvider, new()
 {
     public static DiagnosticResult Diagnostic(string diagnosticId = null)
         => CSharpCodeFixVerifier<TAnalyzer, TCodeFix, XUnitVerifier>.Diagnostic(diagnosticId);
