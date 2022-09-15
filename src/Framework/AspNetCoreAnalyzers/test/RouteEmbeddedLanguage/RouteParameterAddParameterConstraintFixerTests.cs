@@ -140,7 +140,7 @@ public class TestController
     }
 
     [Fact]
-    public async Task MapGet_UnusedParameter_IntAndMinPolicy_AddStringToLambda()
+    public async Task MapGet_ParameterWithoutConstraint_AddConstraint()
     {
         // Arrange
         var source = @"
@@ -152,7 +152,7 @@ class Program
 {
     static void Main()
     {
-        EndpointRouteBuilderExtensions.MapGet(null, @""{|#0:{id:int:min(10)}|}"", () => ""test"");
+        EndpointRouteBuilderExtensions.MapGet(null, @""{|#1:{id:min(10)}|}"", ({|#0:int id|}) => ""test"");
     }
 }
 ";
@@ -173,10 +173,61 @@ class Program
 
         var expectedDiagnostics = new[]
         {
-            new DiagnosticResult(DiagnosticDescriptors.RoutePatternUnusedParameter).WithArguments("id").WithLocation(0)
+            new DiagnosticResult(DiagnosticDescriptors.RoutePatternAddParameterConstraint)
+                .WithArguments("id")
+                .WithLocation(0)
+                .WithLocation(1)
         };
 
         // Act & Assert
         await VerifyCS.VerifyCodeFixAsync(source, expectedDiagnostics, fixedSource, expectedIterations: 1);
+    }
+
+    [Fact]
+    public async Task MapGet_Multiple_ParameterWithoutConstraint_AddConstraint()
+    {
+        // Arrange
+        var source = @"
+using System;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Builder;
+
+class Program
+{
+    static void Main()
+    {
+        EndpointRouteBuilderExtensions.MapGet(null, @""{|#1:{id:min(10)}|}/{|#3:{date}|}"", ({|#0:int id|}, {|#2:DateTime date|}) => ""test"");
+    }
+}
+";
+
+        var fixedSource = @"
+using System;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Builder;
+
+class Program
+{
+    static void Main()
+    {
+        EndpointRouteBuilderExtensions.MapGet(null, @""{id:int:min(10)}/{date:datetime}"", (int id, DateTime date) => ""test"");
+    }
+}
+";
+
+        var expectedDiagnostics = new[]
+        {
+            new DiagnosticResult(DiagnosticDescriptors.RoutePatternAddParameterConstraint)
+                .WithArguments("id")
+                .WithLocation(0)
+                .WithLocation(1),
+            new DiagnosticResult(DiagnosticDescriptors.RoutePatternAddParameterConstraint)
+                .WithArguments("date")
+                .WithLocation(2)
+                .WithLocation(3),
+        };
+
+        // Act & Assert
+        await VerifyCS.VerifyCodeFixAsync(source, expectedDiagnostics, fixedSource, expectedIterations: 2);
     }
 }

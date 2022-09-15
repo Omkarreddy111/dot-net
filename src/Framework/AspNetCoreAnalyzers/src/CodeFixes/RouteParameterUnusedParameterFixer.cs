@@ -30,11 +30,13 @@ public class RouteParameterUnusedParameterFixer : CodeFixProvider
     {
         foreach (var diagnostic in context.Diagnostics)
         {
-            if (diagnostic.Properties.TryGetValue("RouteParameterName", out var routeParameterName))
+            if (diagnostic.Properties.TryGetValue("RouteParameterName", out var routeParameterName) &&
+                diagnostic.Properties.TryGetValue("RouteParameterPolicy", out var routeParameterPolicy) &&
+                diagnostic.Properties.TryGetValue("RouteParameterIsOptional", out var routeParameterIsOptional))
             {
                 context.RegisterCodeFix(
                     CodeAction.Create($"Add parameter '{routeParameterName}'",
-                        cancellationToken => AddRouteParameterAsync(diagnostic, context.Document, cancellationToken),
+                        cancellationToken => AddRouteParameterAsync(diagnostic, context.Document, routeParameterName, routeParameterPolicy, Convert.ToBoolean(routeParameterIsOptional, CultureInfo.InvariantCulture), cancellationToken),
                         equivalenceKey: $"{DiagnosticDescriptors.RoutePatternUnusedParameter.Id}-{routeParameterName}"),
                     diagnostic);
             }
@@ -43,7 +45,8 @@ public class RouteParameterUnusedParameterFixer : CodeFixProvider
         return Task.CompletedTask;
     }
 
-    private static async Task<Document> AddRouteParameterAsync(Diagnostic diagnostic, Document document, CancellationToken cancellationToken)
+    private static async Task<Document> AddRouteParameterAsync(
+        Diagnostic diagnostic, Document document, string routeParameterName, string routeParameterPolicy, bool routeParameterIsOptional, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root == null)
@@ -71,10 +74,6 @@ public class RouteParameterUnusedParameterFixer : CodeFixProvider
         {
             return document;
         }
-
-        var routeParameterName = diagnostic.Properties["RouteParameterName"];
-        var routeParameterPolicy = diagnostic.Properties["RouteParameterPolicy"];
-        var routeParameterIsOptional = Convert.ToBoolean(diagnostic.Properties["RouteParameterIsOptional"], CultureInfo.InvariantCulture);
 
         var resolvedType = CalculateTypeFromPolicy(routeParameterPolicy);
         if (routeParameterIsOptional)
