@@ -65,6 +65,11 @@ internal sealed class HostingApplicationDiagnostics
 
             if (context.Activity is Activity activity)
             {
+                // Add some ASP.NET Core specific properties as tags
+                activity.AddTag("aspnet.traceidentifier", httpContext.TraceIdentifier);
+                var path = (httpContext.Request.PathBase.HasValue ? httpContext.Request.PathBase + httpContext.Request.Path : httpContext.Request.Path).ToString();
+                activity.AddTag("aspnet.requestpath", path);
+
                 if (httpContext.Features.Get<IHttpActivityFeature>() is IHttpActivityFeature feature)
                 {
                     feature.Activity = activity;
@@ -88,11 +93,6 @@ internal sealed class HostingApplicationDiagnostics
         // To avoid allocation, return a null scope if the logger is not on at least to some degree.
         if (loggingEnabled)
         {
-            // Scope may be relevant for a different level of logging, so we always create it
-            // see: https://github.com/aspnet/Hosting/pull/944
-            // Scope can be null if logging is not on.
-            context.Scope = Log.RequestScope(_logger, httpContext);
-
             if (_logger.IsEnabled(LogLevel.Information))
             {
                 if (startTimestamp == 0)
@@ -173,9 +173,6 @@ internal sealed class HostingApplicationDiagnostics
                 HostingEventSource.Log.RequestFailed();
             }
         }
-
-        // Logging Scope is finshed with
-        context.Scope?.Dispose();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -452,75 +449,5 @@ internal sealed class HostingApplicationDiagnostics
         }
         WriteDiagnosticEvent(_diagnosticListener, ActivityStopKey, httpContext);
         activity.Stop();    // Resets Activity.Current (we want this after the Write)
-    }
-
-    private static class Log
-    {
-        public static IDisposable? RequestScope(ILogger logger, HttpContext httpContext)
-        {
-            return logger.BeginScope(new HostingLogScope(httpContext));
-        }
-
-        private sealed class HostingLogScope : IReadOnlyList<KeyValuePair<string, object>>
-        {
-            private readonly string _path;
-            private readonly string _traceIdentifier;
-
-            private string? _cachedToString;
-
-            public int Count => 2;
-
-            public KeyValuePair<string, object> this[int index]
-            {
-                get
-                {
-                    if (index == 0)
-                    {
-                        return new KeyValuePair<string, object>("RequestId", _traceIdentifier);
-                    }
-                    else if (index == 1)
-                    {
-                        return new KeyValuePair<string, object>("RequestPath", _path);
-                    }
-
-                    throw new ArgumentOutOfRangeException(nameof(index));
-                }
-            }
-
-            public HostingLogScope(HttpContext httpContext)
-            {
-                _traceIdentifier = httpContext.TraceIdentifier;
-                _path = (httpContext.Request.PathBase.HasValue
-                         ? httpContext.Request.PathBase + httpContext.Request.Path
-                         : httpContext.Request.Path).ToString();
-            }
-
-            public override string ToString()
-            {
-                if (_cachedToString == null)
-                {
-                    _cachedToString = string.Format(
-                        CultureInfo.InvariantCulture,
-                        "RequestPath:{0} RequestId:{1}",
-                        _path,
-                        _traceIdentifier);
-                }
-
-                return _cachedToString;
-            }
-
-            public IEnumerator<KeyValuePair<string, object>> GetEnumerator()
-            {
-                for (var i = 0; i < Count; ++i)
-                {
-                    yield return this[i];
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-        }
     }
 }
