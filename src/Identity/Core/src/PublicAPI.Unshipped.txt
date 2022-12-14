@@ -1,2 +1,2 @@
 #nullable enable
-static readonly Microsoft.AspNetCore.Identity.IdentityConstants.JwtScheme -> string!
+static readonly Microsoft.AspNetCore.Identity.IdentityConstants.BearerScheme -> string!
