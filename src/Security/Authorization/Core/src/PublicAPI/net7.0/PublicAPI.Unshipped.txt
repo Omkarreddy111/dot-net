@@ -1,20 +1,32 @@
 #nullable enable
 Microsoft.AspNetCore.Authorization.AuthorizationBuilder
 Microsoft.AspNetCore.Authorization.AuthorizationBuilder.AuthorizationBuilder(Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder.RequirePermission(string! permission) -> Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder!
 Microsoft.AspNetCore.Authorization.IAuthorizationPermissionHandler
-Microsoft.AspNetCore.Authorization.IAuthorizationPermissionHandler.GetPermissionsAsync(System.Security.Claims.ClaimsPrincipal! user) -> System.Threading.Tasks.Task<string!>!
+Microsoft.AspNetCore.Authorization.IAuthorizationPermissionHandler.AddPermissionsAsync(System.Security.Claims.ClaimsPrincipal! user, Microsoft.AspNetCore.Authorization.PermissionSet! permissions) -> System.Threading.Tasks.Task!
 Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider.AllowsCachingPolicies.get -> bool
 Microsoft.AspNetCore.Authorization.Infrastructure.PassThroughAuthorizationHandler.PassThroughAuthorizationHandler(Microsoft.Extensions.Options.IOptions<Microsoft.AspNetCore.Authorization.AuthorizationOptions!>! options) -> void
 Microsoft.AspNetCore.Authorization.IAuthorizationRequirementData
 Microsoft.AspNetCore.Authorization.IAuthorizationRequirementData.GetRequirements() -> System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Authorization.IAuthorizationRequirement!>!
+Microsoft.AspNetCore.Authorization.IUserPermissionChecker
+Microsoft.AspNetCore.Authorization.IUserPermissionChecker.HasPermissionAsync(System.Security.Claims.ClaimsPrincipal! user, string! permission) -> System.Threading.Tasks.Task<bool>!
 Microsoft.AspNetCore.Authorization.PermissionRequirement
 Microsoft.AspNetCore.Authorization.PermissionRequirement.Permission.get -> string!
 Microsoft.AspNetCore.Authorization.PermissionRequirement.PermissionRequirement(string! permission) -> void
+Microsoft.AspNetCore.Authorization.PermissionSet
+Microsoft.AspNetCore.Authorization.PermissionSet.Contains(string! permission) -> bool
+Microsoft.AspNetCore.Authorization.PermissionSet.Contains(System.Collections.Generic.IEnumerable<string!>! permissions) -> bool
+Microsoft.AspNetCore.Authorization.PermissionSet.GetEnumerator() -> System.Collections.Generic.IEnumerator<string!>!
+Microsoft.AspNetCore.Authorization.PermissionSet.Grant(string! permission) -> bool
+Microsoft.AspNetCore.Authorization.PermissionSet.PermissionSet() -> void
+Microsoft.AspNetCore.Authorization.PermissionSet.Revoke(string! permission) -> bool
+Microsoft.AspNetCore.Authorization.PermissionsExtensions
 Microsoft.AspNetCore.Authorization.RequirePermissionAttribute
 Microsoft.AspNetCore.Authorization.RequirePermissionAttribute.GetRequirements() -> System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Authorization.IAuthorizationRequirement!>!
 Microsoft.AspNetCore.Authorization.RequirePermissionAttribute.Permission.get -> string!
 Microsoft.AspNetCore.Authorization.RequirePermissionAttribute.RequirePermissionAttribute(string! permission) -> void
 static Microsoft.AspNetCore.Authorization.AuthorizationPolicy.CombineAsync(Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider! policyProvider, System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Authorization.IAuthorizeData!>! authorizeData, System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Authorization.AuthorizationPolicy!>! policies) -> System.Threading.Tasks.Task<Microsoft.AspNetCore.Authorization.AuthorizationPolicy?>!
+static Microsoft.AspNetCore.Authorization.PermissionsExtensions.AddPermissions(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 virtual Microsoft.AspNetCore.Authorization.AuthorizationBuilder.AddDefaultPolicy(string! name, Microsoft.AspNetCore.Authorization.AuthorizationPolicy! policy) -> Microsoft.AspNetCore.Authorization.AuthorizationBuilder!
 virtual Microsoft.AspNetCore.Authorization.AuthorizationBuilder.AddDefaultPolicy(string! name, System.Action<Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder!>! configurePolicy) -> Microsoft.AspNetCore.Authorization.AuthorizationBuilder!
 virtual Microsoft.AspNetCore.Authorization.AuthorizationBuilder.AddFallbackPolicy(string! name, Microsoft.AspNetCore.Authorization.AuthorizationPolicy! policy) -> Microsoft.AspNetCore.Authorization.AuthorizationBuilder!
