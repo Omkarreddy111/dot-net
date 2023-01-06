@@ -9,4 +9,5 @@ then
 fi
 
 pkill dotnet || true
+pkill -3 crossgen2 || true
 exit 0

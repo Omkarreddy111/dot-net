@@ -472,6 +472,15 @@ This package is an internal implementation of the .NET Core SDK and is not meant
     <Exec Command="&quot;$(CrossgenToolPath)&quot; $(Crossgen2Args) -o:&quot;$(TargetDir)%(FileName)%(Extension)&quot; &quot;%(IntermediateCrossgenAssembly.Identity)&quot;"
           IgnoreStandardErrorWarningFormat="true"
           StandardOutputImportance="High" />
+    <Exec Command="&quot;$(CrossgenToolPath)&quot; $(Crossgen2Args) -o:&quot;$(TargetDir)%(FileName)%(Extension)&quot; &quot;%(IntermediateCrossgenAssembly.Identity)&quot;"
+          IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="High" />
+    <Exec Command="&quot;$(CrossgenToolPath)&quot; $(Crossgen2Args) -o:&quot;$(TargetDir)%(FileName)%(Extension)&quot; &quot;%(IntermediateCrossgenAssembly.Identity)&quot;"
+          IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="High" />
+    <Exec Command="&quot;$(CrossgenToolPath)&quot; $(Crossgen2Args) -o:&quot;$(TargetDir)%(FileName)%(Extension)&quot; &quot;%(IntermediateCrossgenAssembly.Identity)&quot;"
+          IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="High" />
   </Target>
 
   <Target Name="_GenerateComposites"
