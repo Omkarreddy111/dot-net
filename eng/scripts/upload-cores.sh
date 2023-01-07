@@ -25,6 +25,7 @@ shopt -s nullglob
 files=(
   $wd/core*
   $wd/dotnet-*.core
+  /cores/core*
 )
 $save_nullglob
 
