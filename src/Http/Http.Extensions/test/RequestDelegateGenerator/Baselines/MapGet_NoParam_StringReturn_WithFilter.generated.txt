@@ -109,9 +109,11 @@ namespace Microsoft.AspNetCore.Http.Generated
 
                 Task RequestHandler(HttpContext httpContext)
                 {
-                        var result = handler();
-                        return httpContext.Response.WriteAsync(result);
+                    httpContext.Response.ContentType ??= "text/plain";
+                    var result = handler();
+                    return GeneratedRouteBuilderExtensionsCore.ExecuteObjectResult(result, httpContext);
                 }
+
                 async Task RequestHandlerFiltered(HttpContext httpContext)
                 {
                     var result = await filteredInvocation(new DefaultEndpointFilterInvocationContext(httpContext));
