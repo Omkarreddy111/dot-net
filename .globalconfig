@@ -1,6 +1,6 @@
 is_global = true
 
-# CA1309: Use ordinal StringComparison
+# CA1309: Use ordinal StringComparison,,
 # https://github.com/dotnet/aspnetcore/pull/30111#issuecomment-777817003
 dotnet_diagnostic.CA1309.severity = suggestion
 
