@@ -1,4 +1,4 @@
-ASP.NET Core
+ASP.NET Cor
 ============ytyt
 
 [![.NET Foundation](https://img.shields.io/badge/.NET%20Foundation-blueviolet.svg)](https://www.dotnetfoundation.org/)
